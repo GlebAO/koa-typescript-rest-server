@@ -1,5 +1,8 @@
 import app from './app';
+import postgresConnection from './database/postgres.connection';
 
 const PORT:number = Number(process.env.PORT) || 3005;
 
-app.listen(PORT);
+postgresConnection
+  .then(() => app.listen(PORT))
+  .catch(console.error);

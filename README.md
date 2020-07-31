@@ -11,3 +11,15 @@ $ npm install
 $ tsc
 $ npm start
 ```
+- Create PostgreSQL database.
+
+```shell
+$ sudo adduser koa
+$ sudo su postgres
+$ psql
+$ CREATE DATABASE blog;
+$ CREATE USER koa WITH ENCRYPTED PASSWORD 'koa';
+$ GRANT ALL PRIVILEGES ON DATABASE blog TO koa;
+$ \q
+$ exit
+```
