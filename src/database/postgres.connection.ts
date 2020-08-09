@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { createConnection, Connection, ConnectionOptions } from 'typeorm';
-import { Post } from "../models";
+import { Post, User } from "../models";
 
 const connectionOpts: ConnectionOptions = {
     type: 'postgres',
@@ -9,7 +9,7 @@ const connectionOpts: ConnectionOptions = {
     username: process.env.DB_USERNAME || 'koa',
     password: process.env.DB_PASSWORD || 'koa',
     database: process.env.DB_NAME || 'blog',
-    entities: [Post],
+    entities: [Post, User],
     synchronize: true,
 };
 

@@ -1,15 +1,15 @@
 import Router from "@koa/router";
-import { getPosts, getPostById, createPost, deletePost, updatePost } from "../controllers/posts";
+import { getPosts, createPost, deletePost, updatePost, getPostBySlug } from "../controllers/posts";
 
 const routerOpts: Router.RouterOptions = {
-    prefix: '/posts',
+    prefix: '/api/posts',
 };
 
 const router = new Router(routerOpts);
 
 router.get('/', getPosts);
 
-router.get('/:post_id', getPostById);
+router.get('/:slug', getPostBySlug);
 
 router.post('/', createPost);
 

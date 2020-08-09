@@ -1,10 +1,14 @@
 import Koa from "koa";
+import dotenv from "dotenv";
 import bodyParser from "koa-bodyparser";
 import helmet from "koa-helmet";
 import cors from "@koa/cors";
 import HttpStatus from 'http-status-codes';
 
 import postRoutes from "./routes/posts";
+import userRoutes from "./routes/users";
+
+dotenv.config();
 
 const app: Koa = new Koa();
 
@@ -31,6 +35,7 @@ app.use(async (ctx: Koa.Context, next: () => Promise<any>) => {
 
 // Route middleware.
 app.use(postRoutes.routes()).use(postRoutes.allowedMethods());
+app.use(userRoutes.routes()).use(userRoutes.allowedMethods());
 
 // Application error logging.
 app.on('error', console.error);

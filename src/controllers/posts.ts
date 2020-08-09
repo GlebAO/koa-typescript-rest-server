@@ -7,7 +7,7 @@ export const getPosts = async (ctx: Koa.Context): Promise<void> => {
     const postRepo: Repository<Post> = getRepository(Post);
     const posts = await postRepo.find();
     ctx.body = {
-        data: { posts },
+        posts
     };
 }
 
@@ -18,17 +18,28 @@ export const getPostById = async (ctx: Koa.Context): Promise<void> => {
         ctx.throw(HttpStatus.NOT_FOUND);
     }
     ctx.body = {
-        data: { post },
+        post
+    };
+}
+
+export const getPostBySlug = async (ctx: Koa.Context): Promise<void> => {
+    const postRepo: Repository<Post> = getRepository(Post);
+    const post = await postRepo.findOne({slug: ctx.params.slug});
+    if (!post) {
+        ctx.throw(HttpStatus.NOT_FOUND);
+    }
+    ctx.body = {
+        post
     };
 }
 
 export const createPost = async (ctx: Koa.Context): Promise<void> => {
     const postRepo: Repository<Post> = getRepository(Post);
-    const { id, title, content } = ctx.request.body;
-    const post: Post = postRepo.create({ id, title, content });
+    const { id, title, slug, content } = ctx.request.body;
+    const post: Post = postRepo.create({ id, title, slug, content });
     await postRepo.save(post);
     ctx.body = {
-        data: { post },
+        post
     };
 }
 
@@ -54,7 +65,7 @@ export const updatePost = async (ctx: Koa.Context): Promise<void> => {
     );
     const updatedPost = await postRepo.findOne(ctx.params.post_id);
     ctx.body = {
-        data: { post: updatedPost },
+        post: updatedPost
     };
 
 }
