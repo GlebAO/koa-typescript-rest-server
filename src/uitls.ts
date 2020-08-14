@@ -76,4 +76,11 @@ const createToken = (user: User) => {
   });
 };
 
-export { hashPassword, validateEmail, createToken, tokenPayloadInterface };
+const verifyPassword = (
+  passwordAttempt: string,
+  hashedPassword: string
+) => {
+  return bcrypt.compare(passwordAttempt, hashedPassword);
+};
+
+export { hashPassword, validateEmail, createToken, verifyPassword, tokenPayloadInterface };

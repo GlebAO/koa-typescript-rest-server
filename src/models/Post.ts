@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, Timestamp } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, Timestamp, JoinColumn } from "typeorm";
 import User from "./User";
 
 @Entity()
@@ -23,7 +23,7 @@ export default class Post {
   @Column("text")
   content!: string;
 
-  @ManyToOne(type => User, user => user.posts)
+  @ManyToOne(()=> User, user => user.posts)
   user!: User;
 
   @CreateDateColumn()

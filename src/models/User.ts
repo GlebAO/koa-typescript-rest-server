@@ -52,7 +52,7 @@ export default class User {
   })
   status!: UserStatus;
 
-  @OneToMany(type => Post, post => post.user)
+  @OneToMany(() => Post, post => post.user)
   posts!: Post[];
 
   @CreateDateColumn()

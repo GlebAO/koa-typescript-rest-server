@@ -1,20 +1,15 @@
 import Router from "@koa/router";
-import { getPosts, createPost, deletePost, updatePost, getPostBySlug } from "../controllers/posts";
+import { getPosts, getPostBySlug } from "../controllers/posts";
+import { DefaultState, Context } from 'koa';
 
 const routerOpts: Router.RouterOptions = {
     prefix: '/api/posts',
 };
 
-const router = new Router(routerOpts);
+const router = new Router<DefaultState, Context>(routerOpts);
 
 router.get('/', getPosts);
 
 router.get('/:slug', getPostBySlug);
-
-router.post('/', createPost);
-
-router.delete('/:post_id', deletePost);
-
-router.patch('/:post_id', updatePost);
 
 export default router;
