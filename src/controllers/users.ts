@@ -54,9 +54,10 @@ export const signup = async (ctx: Koa.Context): Promise<void> => {
       const decodedToken = jwtDecode<decodedTokenInterface>(token);
       const expiresAt = decodedToken.exp;
 
-      const { name, email, role } = savedUser;
+      const { name, email, role, id } = savedUser;
 
       const userInfo = {
+        sub: id,
         name,
         email,
         role,
@@ -107,9 +108,10 @@ export const login = async (ctx: Koa.Context): Promise<void> => {
       const decodedToken = jwtDecode<decodedTokenInterface>(token);
       const expiresAt = decodedToken.exp;
 
-      const { name, email, role } = user;
+      const { name, email, role, id } = user;
 
       const userInfo = {
+        sub: id,
         name,
         email,
         role,

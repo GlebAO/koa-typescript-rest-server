@@ -3,7 +3,7 @@ import Post from "./Post";
 
 export enum UserRole {
   ADMIN = "admin",
-  USER = "user",
+  USER = "redactor",
   GUEST = "guest",
 }
 

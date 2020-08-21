@@ -72,7 +72,7 @@ const createToken = (user: User) => {
 
   return jwt.sign(tokenPayload, secret, {
     algorithm: "HS384",
-    expiresIn: "1h",
+    expiresIn: process.env.COOKIE_EXPIRES_IN,
   });
 };
 

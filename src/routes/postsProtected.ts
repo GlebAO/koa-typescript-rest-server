@@ -13,6 +13,6 @@ router.post('/', validator(postSchema), createPost);
 
 router.delete('/:post_id', deletePost);
 
-router.patch('/:post_id', updatePost);
+router.patch('/:post_id', validator(postSchema), updatePost);
 
 export default router;

@@ -20,8 +20,6 @@ app.use(helmet());
 app.use(cors());
 app.use(bodyParser());
 
-
-
 // Generic error handling middleware.
 app.use(async (ctx: Koa.Context, next: () => Promise<any>) => {
     try {

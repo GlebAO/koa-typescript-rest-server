@@ -1,5 +1,5 @@
 import Router from "@koa/router";
-import { getPosts, getPostBySlug } from "../controllers/posts";
+import { getActivePosts, getActivePostBySlug } from "../controllers/posts";
 import { DefaultState, Context } from 'koa';
 
 const routerOpts: Router.RouterOptions = {
@@ -8,8 +8,8 @@ const routerOpts: Router.RouterOptions = {
 
 const router = new Router<DefaultState, Context>(routerOpts);
 
-router.get('/', getPosts);
+router.get('/', getActivePosts);
 
-router.get('/:slug', getPostBySlug);
+router.get('/:slug', getActivePostBySlug);
 
 export default router;
