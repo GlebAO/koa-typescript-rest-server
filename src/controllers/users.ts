@@ -97,7 +97,10 @@ export const login = async (ctx: Koa.Context): Promise<void> => {
     const userRepo: Repository<User> = getRepository(User);
     const user = await userRepo.findOne({ email: email });
     if (!user) {
-      ctx.throw(HttpStatus.FORBIDDEN, "Email already exists");
+      ctx.throw(HttpStatus.FORBIDDEN, "Wrong email or password");
+    }
+    if(user.status === UserStatus.DELETED) {
+      ctx.throw(HttpStatus.FORBIDDEN, "User blocked");
     }
 
     const passwordValid = await verifyPassword(password, user.password);
@@ -124,15 +127,74 @@ export const login = async (ctx: Koa.Context): Promise<void> => {
         //sameSite: "strict",
       });
 
+      await userRepo.update(
+        { id: user.id },
+        { lastLoggedIn: Math.floor(Date.now() / 1000) },
+      );
+
       ctx.body = {
         message: "Вход успешно выполнен!",
         userInfo,
         expiresAt,
       };
     } else {
-      ctx.throw(HttpStatus.FORBIDDEN, "Wrong email or passwordww.");
+      ctx.throw(HttpStatus.FORBIDDEN, "Wrong email or password.");
     }
   } catch (err) {
     ctx.throw(HttpStatus.BAD_REQUEST, err.message);
   }
 };
+
+export const getUsers = async (ctx: Koa.Context): Promise<void> => {
+  const userRepo: Repository<User> = getRepository(User);
+  const users = await userRepo.find({ order: { createdAt: "DESC" } });
+
+  ctx.body = {
+    users
+  };
+}
+
+export const updateUser = async (ctx: Koa.Context): Promise<void> => {
+  const userId = parseInt(ctx.params.userId);
+  const { role, status } = ctx.request.body;
+
+  if (ctx.user.role !== UserRole.ADMIN) {
+    ctx.throw(HttpStatus.FORBIDDEN, "У Вас нет прав");
+  }
+
+  const values = {};
+
+  const roles = [UserRole.ADMIN, UserRole.USER, UserRole.GUEST];
+  if(role){
+    if(!roles.includes(role)) {
+      ctx.throw(HttpStatus.BAD_REQUEST, "Такой роли не существует");
+    }
+    Object.assign(values, {role}) 
+  }
+  console.log(status)
+  const statuses = [UserStatus.ACTIVE, UserStatus.DELETED, UserStatus.INACTIVE];
+  if(status !== undefined) {
+    if(!statuses.includes(status)) {
+      ctx.throw(HttpStatus.BAD_REQUEST, "Такого статуса не существует");
+    }
+    Object.assign(values, {status}) 
+  }
+
+
+
+  if(Object.keys(values).length === 0) {
+    ctx.throw(HttpStatus.BAD_REQUEST, "Нет значений");
+  }
+
+  const userRepo: Repository<User> = getRepository(User);
+  await userRepo.update(
+    { id: userId },
+    { ...values },
+  );
+
+  const updatedUser = await userRepo.findOne(userId);
+
+  ctx.body = {
+    user: updatedUser
+  };
+}

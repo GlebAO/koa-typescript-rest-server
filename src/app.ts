@@ -11,6 +11,7 @@ import jwtDecode from "jwt-decode";
 import postRoutes from "./routes/posts";
 import userRoutes from "./routes/users";
 import postProtectedRoutes from "./routes/postsProtected";
+import userProtectedRoutes from "./routes/usersProtected";
 
 dotenv.config();
 
@@ -34,7 +35,7 @@ app.use(async (ctx: Koa.Context, next: () => Promise<any>) => {
 
 app.use(postRoutes.routes()).use(postRoutes.allowedMethods());
 app.use(userRoutes.routes()).use(userRoutes.allowedMethods());
-app.use(jwt({ 
+app.use(jwt({
     secret: process.env.JWT_SECRET!,
     issuer: "api.gsweb.ru",
     audience: "api.gsweb.ru",
@@ -45,18 +46,20 @@ app.use(async (ctx: Koa.Context, next: () => Promise<any>) => {
 
     if (!token) {
         ctx.throw(HttpStatus.FORBIDDEN, "Authentication invalid.");
-      }
+    }
 
     const decodedToken = jwtDecode(token);
 
     if (!decodedToken) {
         ctx.throw(HttpStatus.UNAUTHORIZED, "There was a proble authorizing the request");
     } else {
-      ctx.user = decodedToken;
-      await next();
+        ctx.user = decodedToken;
+        await next();
     }
 });
+
 app.use(postProtectedRoutes.routes()).use(postProtectedRoutes.allowedMethods());
+app.use(userProtectedRoutes.routes()).use(userProtectedRoutes.allowedMethods());
 
 // Application error logging.
 app.on('error', console.error);

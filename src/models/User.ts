@@ -60,4 +60,10 @@ export default class User {
 
   @UpdateDateColumn()
   updatedAt!: Timestamp;
+
+  @Column({
+    type: "int",
+    default: null,
+  })
+  lastLoggedIn!: number
 }
