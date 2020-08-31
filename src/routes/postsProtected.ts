@@ -1,18 +1,22 @@
 import Router from "@koa/router";
-import {  createPost, deletePost, updatePost, postSchema } from "../controllers/posts";
+import {  createPost, deletePost, updatePost, postSchema, getAllPosts, managePost } from "../controllers/posts";
 import { DefaultState, Context } from 'koa';
 import validator from "koa-yup-validator";
 
 const routerOpts: Router.RouterOptions = {
-    prefix: '/api/posts',
+    prefix: '/api',
 };
 
 const router = new Router<DefaultState, Context>(routerOpts);
 
-router.post('/', validator(postSchema), createPost);
+router.post('/posts', validator(postSchema), createPost);
 
-router.delete('/:post_id', deletePost);
+router.delete('/posts/:post_id', deletePost);
 
-router.patch('/:post_id', validator(postSchema), updatePost);
+router.patch('/posts/:post_id', validator(postSchema), updatePost);
+
+router.get('/backend/posts', getAllPosts);
+
+router.patch('/backend/posts/:postId', managePost);
 
 export default router;

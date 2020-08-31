@@ -13,7 +13,18 @@ export const postSchema = yup.object().shape({
 
 export const getActivePosts = async (ctx: Koa.Context): Promise<void> => {
     const postRepo: Repository<Post> = getRepository(Post);
-    const posts = await postRepo.find({ where: {status: PostStatus.ACTIVE }, order: { createdAt: "DESC" } });
+    const posts = await postRepo.find({ where: { status: PostStatus.ACTIVE }, order: { createdAt: "DESC" } });
+    ctx.body = {
+        posts
+    };
+}
+
+export const getAllPosts = async (ctx: Koa.Context): Promise<void> => {
+    if (ctx.user.role !== UserRole.ADMIN) {
+        ctx.throw(HttpStatus.FORBIDDEN, "Недостаточно прав");
+    }
+    const postRepo: Repository<Post> = getRepository(Post);
+    const posts = await postRepo.find({ order: { createdAt: "DESC" } });
     ctx.body = {
         posts
     };
@@ -85,6 +96,42 @@ export const deletePost = async (ctx: Koa.Context): Promise<void> => {
     }
     await postRepo.delete(post.id);
     ctx.status = HttpStatus.NO_CONTENT;
+}
+
+
+export const managePost = async (ctx: Koa.Context): Promise<void> => {
+    const postId = parseInt(ctx.params.postId);
+    const { status } = ctx.request.body
+
+    if (ctx.user.role !== UserRole.ADMIN) {
+        ctx.throw(HttpStatus.FORBIDDEN, "У Вас нет прав");
+    }
+
+    const postRepo: Repository<Post> = getRepository(Post);
+    const post = await postRepo.findOne(postId);
+    if (!post) {
+        ctx.throw(HttpStatus.NOT_FOUND);
+    }
+
+    const statuses = [PostStatus.ACTIVE, PostStatus.DRAFT, PostStatus.ARCHIVED];
+
+    if(status === undefined){
+        ctx.throw(HttpStatus.BAD_REQUEST, "Нет обязательных параметров");
+    }
+
+    if(status && !statuses.includes(status)) {
+        ctx.throw(HttpStatus.BAD_REQUEST, "Такого статусу не существует");
+    }
+
+    await postRepo.update(
+        { id: postId },
+        { status },
+    );
+    
+    const updatedPost = await postRepo.findOne(postId);
+    ctx.body = {
+        post: updatedPost
+    };
 }
 
 export const updatePost = async (ctx: Koa.Context): Promise<void> => {
