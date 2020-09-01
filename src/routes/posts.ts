@@ -1,6 +1,7 @@
 import Router from "@koa/router";
-import { getActivePosts, getActivePostBySlug } from "../controllers/posts";
+import { getActivePosts, getActivePostBySlug, postListParamsSchema } from "../controllers/posts";
 import { DefaultState, Context } from 'koa';
+import validator from "koa-yup-validator";
 
 const routerOpts: Router.RouterOptions = {
     prefix: '/api/posts',
@@ -8,7 +9,7 @@ const routerOpts: Router.RouterOptions = {
 
 const router = new Router<DefaultState, Context>(routerOpts);
 
-router.get('/', getActivePosts);
+router.get('/', validator(postListParamsSchema), getActivePosts);
 
 router.get('/:slug', getActivePostBySlug);
 

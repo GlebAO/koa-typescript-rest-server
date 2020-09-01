@@ -4,6 +4,8 @@ import { Post, User, UserRole } from "../models";
 import HttpStatus from 'http-status-codes';
 import * as yup from "yup";
 import { PostStatus } from "../models/Post";
+import {getCustomRepository} from "typeorm";
+import { PostsRepository } from "../repository/PostsRepository";
 
 export const postSchema = yup.object().shape({
     title: yup.string().required().min(2).max(150),
@@ -11,9 +13,15 @@ export const postSchema = yup.object().shape({
     content: yup.string().required().min(50)
 });
 
+export const postListParamsSchema = yup.object().shape({
+    page: yup.number().min(1),
+    perPage: yup.number().min(1).max(100)
+})
+
 export const getActivePosts = async (ctx: Koa.Context): Promise<void> => {
-    const postRepo: Repository<Post> = getRepository(Post);
-    const posts = await postRepo.find({ where: { status: PostStatus.ACTIVE }, order: { createdAt: "DESC" } });
+    const { page, perPage } = ctx.request.query;
+    const postsRepository = getCustomRepository(PostsRepository);
+    const posts = await postsRepository.filterPostsWithPagination(page, perPage, PostStatus.ACTIVE);
     ctx.body = {
         posts
     };
@@ -23,8 +31,9 @@ export const getAllPosts = async (ctx: Koa.Context): Promise<void> => {
     if (ctx.user.role !== UserRole.ADMIN) {
         ctx.throw(HttpStatus.FORBIDDEN, "Недостаточно прав");
     }
-    const postRepo: Repository<Post> = getRepository(Post);
-    const posts = await postRepo.find({ order: { createdAt: "DESC" } });
+    const { page, perPage } = ctx.request.query;
+    const postsRepository = getCustomRepository(PostsRepository);
+    const posts = await postsRepository.filterPostsWithPagination(page, perPage);
     ctx.body = {
         posts
     };
@@ -127,7 +136,7 @@ export const managePost = async (ctx: Koa.Context): Promise<void> => {
         { id: postId },
         { status },
     );
-    
+
     const updatedPost = await postRepo.findOne(postId);
     ctx.body = {
         post: updatedPost
