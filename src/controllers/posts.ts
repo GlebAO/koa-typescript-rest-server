@@ -4,8 +4,7 @@ import { Post, User, UserRole } from "../models";
 import HttpStatus from 'http-status-codes';
 import * as yup from "yup";
 import { PostStatus } from "../models/Post";
-import {getCustomRepository} from "typeorm";
-import { PostsRepository } from "../repository/PostsRepository";
+import { filterPostsWithPagination } from "../repository/PostsRepository";
 
 export const postSchema = yup.object().shape({
     title: yup.string().required().min(2).max(150),
@@ -20,8 +19,7 @@ export const postListParamsSchema = yup.object().shape({
 
 export const getActivePosts = async (ctx: Koa.Context): Promise<void> => {
     const { page, perPage } = ctx.request.query;
-    const postsRepository = getCustomRepository(PostsRepository);
-    const posts = await postsRepository.filterPostsWithPagination(page, perPage, PostStatus.ACTIVE);
+    const posts = await filterPostsWithPagination(page, perPage, PostStatus.ACTIVE)
     ctx.body = {
         posts
     };
@@ -32,8 +30,7 @@ export const getAllPosts = async (ctx: Koa.Context): Promise<void> => {
         ctx.throw(HttpStatus.FORBIDDEN, "Недостаточно прав");
     }
     const { page, perPage } = ctx.request.query;
-    const postsRepository = getCustomRepository(PostsRepository);
-    const posts = await postsRepository.filterPostsWithPagination(page, perPage);
+    const posts = await filterPostsWithPagination(page, perPage)
     ctx.body = {
         posts
     };
@@ -124,11 +121,11 @@ export const managePost = async (ctx: Koa.Context): Promise<void> => {
 
     const statuses = [PostStatus.ACTIVE, PostStatus.DRAFT, PostStatus.ARCHIVED];
 
-    if(status === undefined){
+    if (status === undefined) {
         ctx.throw(HttpStatus.BAD_REQUEST, "Нет обязательных параметров");
     }
 
-    if(status && !statuses.includes(status)) {
+    if (status && !statuses.includes(status)) {
         ctx.throw(HttpStatus.BAD_REQUEST, "Такого статусу не существует");
     }
 

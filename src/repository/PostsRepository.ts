@@ -1,21 +1,23 @@
-import { EntityRepository, AbstractRepository } from "typeorm";
+import { getConnection } from "typeorm";
 import Post, { PostStatus } from "../models/Post";
 
-@EntityRepository(Post)
-export class PostsRepository extends AbstractRepository<Post> {
-    filterPostsWithPagination(page: number = 0, perPage: number = 10, status?: PostStatus): Promise<[Post[], number]> {
-        const whereConditions = {};
-        if (status) {
-            Object.assign(whereConditions, { status })
-        }
+export async function filterPostsWithPagination(page: number = 0, perPage: number = 10, status?: PostStatus): Promise<[Post[], number]> {
 
-        return this.repository.findAndCount({
-            where: whereConditions,
-            order: { createdAt: "DESC" },
-            take: perPage,
-            skip: page === 1 || page === 0 ? 0 : --page * perPage
-            //cache: true
-        })
+    const query = getConnection()
+        .createQueryBuilder()
+        .select(["p", "u.name"])
+        .from(Post, "p")
+        .leftJoin("p.user", "u")
+        .take(perPage)
+        .skip(page === 1 || page === 0 ? 0 : --page * perPage)
+        .groupBy("p.id, u.id")
+        .orderBy("p.createdAt", "DESC");
+
+    if (status) {
+        query.andWhere("p.status = :status", { status })
     }
 
+    console.log(query.getSql());
+
+    return await query.getManyAndCount();
 }

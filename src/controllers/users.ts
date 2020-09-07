@@ -1,5 +1,5 @@
 import Koa from "koa";
-import { getRepository, Repository } from "typeorm";
+import { getRepository, Repository, getCustomRepository } from "typeorm";
 import {
   hashPassword,
   validateEmail,
@@ -10,6 +10,7 @@ import {
 import { User, UserStatus, UserRole } from "../models";
 import HttpStatus from "http-status-codes";
 import jwtDecode from "jwt-decode";
+import { UsersRepository } from "../repository/UsersRepository";
 
 type UserDataType = {
   email: string;
@@ -99,7 +100,7 @@ export const login = async (ctx: Koa.Context): Promise<void> => {
     if (!user) {
       ctx.throw(HttpStatus.FORBIDDEN, "Wrong email or password");
     }
-    if(user.status === UserStatus.DELETED) {
+    if (user.status === UserStatus.DELETED) {
       ctx.throw(HttpStatus.FORBIDDEN, "User blocked");
     }
 
@@ -146,8 +147,12 @@ export const login = async (ctx: Koa.Context): Promise<void> => {
 };
 
 export const getUsers = async (ctx: Koa.Context): Promise<void> => {
-  const userRepo: Repository<User> = getRepository(User);
-  const users = await userRepo.find({ order: { createdAt: "DESC" } });
+  if (ctx.user.role !== UserRole.ADMIN) {
+    ctx.throw(HttpStatus.FORBIDDEN, "Недостаточно прав");
+  }
+  const { page, perPage } = ctx.request.query;
+  const usersRepository = getCustomRepository(UsersRepository);
+  const users = await usersRepository.filterPostsWithPagination(page, perPage);
 
   ctx.body = {
     users
@@ -165,24 +170,24 @@ export const updateUser = async (ctx: Koa.Context): Promise<void> => {
   const values = {};
 
   const roles = [UserRole.ADMIN, UserRole.USER, UserRole.GUEST];
-  if(role){
-    if(!roles.includes(role)) {
+  if (role) {
+    if (!roles.includes(role)) {
       ctx.throw(HttpStatus.BAD_REQUEST, "Такой роли не существует");
     }
-    Object.assign(values, {role}) 
+    Object.assign(values, { role })
   }
   console.log(status)
   const statuses = [UserStatus.ACTIVE, UserStatus.DELETED, UserStatus.INACTIVE];
-  if(status !== undefined) {
-    if(!statuses.includes(status)) {
+  if (status !== undefined) {
+    if (!statuses.includes(status)) {
       ctx.throw(HttpStatus.BAD_REQUEST, "Такого статуса не существует");
     }
-    Object.assign(values, {status}) 
+    Object.assign(values, { status })
   }
 
 
 
-  if(Object.keys(values).length === 0) {
+  if (Object.keys(values).length === 0) {
     ctx.throw(HttpStatus.BAD_REQUEST, "Нет значений");
   }
 
