@@ -31,6 +31,7 @@
     "koa-helmet": "^5.2.0",
     "koa-jwt": "^4.0.0",
     "koa-yup-validator": "^1.0.7",
+    "nodemailer": "^6.4.11",
     "pg": "^8.3.0",
     "typeorm": "^0.2.25",
     "yup": "^0.29.3"

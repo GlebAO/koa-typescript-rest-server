@@ -18,6 +18,7 @@ type UserDataType = {
   password: string;
   role: UserRole;
   status: UserStatus;
+  accept: boolean | undefined;
 };
 
 interface decodedTokenInterface extends tokenPayloadInterface {
@@ -26,12 +27,17 @@ interface decodedTokenInterface extends tokenPayloadInterface {
 
 export const signup = async (ctx: Koa.Context): Promise<void> => {
   try {
-    const { name, email } = ctx.request.body;
+    const { name, email, accept, password } = ctx.request.body;
+
+    if (password.length < 8) {
+      ctx.throw(HttpStatus.BAD_REQUEST, "Wrong pasword format");
+    }
     const hashedPassword = await hashPassword(ctx.request.body.password);
 
     const userData: UserDataType = {
       email: email.toLowerCase(),
       name,
+      accept,
       password: hashedPassword,
       role: UserRole.GUEST,
       status: UserStatus.INACTIVE,
@@ -39,6 +45,9 @@ export const signup = async (ctx: Koa.Context): Promise<void> => {
 
     if (!validateEmail(userData.email)) {
       ctx.throw(HttpStatus.BAD_REQUEST, "Wrong email format");
+    }
+    if(!userData.accept) {
+      ctx.throw(HttpStatus.BAD_REQUEST, "You should accept the terms of policy");
     }
 
     const userRepo: Repository<User> = getRepository(User);
@@ -51,19 +60,17 @@ export const signup = async (ctx: Koa.Context): Promise<void> => {
     const savedUser = await userRepo.save(newUser);
 
     if (savedUser) {
+
       const token = createToken(savedUser);
       const decodedToken = jwtDecode<decodedTokenInterface>(token);
       const expiresAt = decodedToken.exp;
-
       const { name, email, role, id } = savedUser;
-
       const userInfo = {
         sub: id,
         name,
         email,
         role,
       };
-
       ctx.cookies.set("token", token, {
         httpOnly: true,
         expires: new Date(expiresAt * 1000),
@@ -90,37 +97,35 @@ export const signup = async (ctx: Koa.Context): Promise<void> => {
 export const login = async (ctx: Koa.Context): Promise<void> => {
   try {
     const { email, password } = ctx.request.body;
-
-    if (!validateEmail(email)) {
+    
+    if (!validateEmail(email) || password.length < 8) {
       ctx.throw(HttpStatus.FORBIDDEN, "Wrong email or password.");
     }
-
+    
     const userRepo: Repository<User> = getRepository(User);
     const user = await userRepo.findOne({ email: email });
     if (!user) {
       ctx.throw(HttpStatus.FORBIDDEN, "Wrong email or password");
     }
+    
     if (user.status === UserStatus.DELETED) {
       ctx.throw(HttpStatus.FORBIDDEN, "User blocked");
     }
 
     const passwordValid = await verifyPassword(password, user.password);
-
+   
     if (passwordValid) {
+      
       const token = createToken(user);
-
       const decodedToken = jwtDecode<decodedTokenInterface>(token);
       const expiresAt = decodedToken.exp;
-
       const { name, email, role, id } = user;
-
       const userInfo = {
         sub: id,
         name,
         email,
         role,
       };
-
       ctx.cookies.set("token", token, {
         httpOnly: true,
         expires: new Date(expiresAt * 1000),

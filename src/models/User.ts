@@ -34,9 +34,14 @@ export default class User {
   @Column({
     type: "varchar",
     length: 150,
-    select: false
   })
   password!: string;
+
+  @Column({
+    type: "varchar",
+    length: 150,
+  })
+  hash!: string;
 
   @Column({
     type: "varchar",
@@ -66,5 +71,12 @@ export default class User {
     type: "int",
     default: null,
   })
-  lastLoggedIn!: number
+  lastLoggedIn!: number;
+
+  @Column({
+    type: "bool",
+    default: null,
+  })
+  accept!: boolean;
+
 }
