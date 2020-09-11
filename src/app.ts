@@ -35,16 +35,28 @@ app.use(async (ctx: Koa.Context, next: () => Promise<any>) => {
     }
 });
 
-
 app.use(async (ctx: Koa.Context, next: () => Promise<any>) => {
 
-    let transporter = nodemailer.createTransport({
-        service: 'Yandex',
-        auth: {
-            user: process.env.YANDEX_LOGIN,
-            pass: process.env.YANDEX_PASSWORD
+    let mailConfig;
+    if (process.env.NODE_ENV === 'prod') {
+        mailConfig = {
+            service: 'Yandex',
+            auth: {
+                user: process.env.YANDEX_LOGIN,
+                pass: process.env.YANDEX_PASSWORD
+            }
         }
-    })
+    } else {
+        mailConfig = {
+            host: 'smtp.ethereal.email',
+            port: 587,
+            auth: {
+                user: 'nasir.becker8@ethereal.email',
+                pass: 'xpJJm2kHaj6NwUntnw'
+            }
+        };
+    }
+    let transporter = nodemailer.createTransport(mailConfig)
 
     const defaultOptions: Mail.Options = {
         from: process.env.YANDEX_LOGIN!

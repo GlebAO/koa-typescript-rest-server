@@ -82,15 +82,12 @@ export const signup = async (ctx: Koa.Context): Promise<void> => {
       //sameSite: "strict",
       //  });
 
+      const confirmUrl = `${process.env.NODE_ENV === 'prod' ? process.env.DOMAIN : 'http://192.168.20.160:3000'}/signup/confirm?token=${randomString}`;
+
       ctx.mailer({
         to: savedUser.email,
         subject: 'GSweb - подтверждение email',
-        html: `<a href="http://localhost:3000/signup/confirm?token=${randomString}"></a>`,
-      }, (error: Error, info: any) => {
-        if (error) {
-          console.log(error);
-        }
-        console.log('Message sent: %s', info);
+        html: `<p>Перейдите по ссылке для завершения регистрации</p> <a target="_blank" href="${confirmUrl}">${confirmUrl}</a>`,
       });
 
       ctx.body = {
