@@ -11,6 +11,7 @@ import { User, UserStatus, UserRole } from "../models";
 import HttpStatus from "http-status-codes";
 import jwtDecode from "jwt-decode";
 import { UsersRepository } from "../repository/UsersRepository";
+import cryptoRandomString from "crypto-random-string";
 
 type UserDataType = {
   email: string;
@@ -19,6 +20,7 @@ type UserDataType = {
   role: UserRole;
   status: UserStatus;
   accept: boolean | undefined;
+  hash: string;
 };
 
 interface decodedTokenInterface extends tokenPayloadInterface {
@@ -32,7 +34,8 @@ export const signup = async (ctx: Koa.Context): Promise<void> => {
     if (password.length < 8) {
       ctx.throw(HttpStatus.BAD_REQUEST, "Wrong pasword format");
     }
-    const hashedPassword = await hashPassword(ctx.request.body.password);
+    const hashedPassword = await hashPassword(password);
+    const randomString = cryptoRandomString({ length: 32, type: 'url-safe' });;
 
     const userData: UserDataType = {
       email: email.toLowerCase(),
@@ -41,12 +44,13 @@ export const signup = async (ctx: Koa.Context): Promise<void> => {
       password: hashedPassword,
       role: UserRole.GUEST,
       status: UserStatus.INACTIVE,
+      hash: randomString
     };
 
     if (!validateEmail(userData.email)) {
       ctx.throw(HttpStatus.BAD_REQUEST, "Wrong email format");
     }
-    if(!userData.accept) {
+    if (!userData.accept) {
       ctx.throw(HttpStatus.BAD_REQUEST, "You should accept the terms of policy");
     }
 
@@ -61,27 +65,38 @@ export const signup = async (ctx: Koa.Context): Promise<void> => {
 
     if (savedUser) {
 
-      const token = createToken(savedUser);
-      const decodedToken = jwtDecode<decodedTokenInterface>(token);
-      const expiresAt = decodedToken.exp;
-      const { name, email, role, id } = savedUser;
-      const userInfo = {
-        sub: id,
-        name,
-        email,
-        role,
-      };
-      ctx.cookies.set("token", token, {
-        httpOnly: true,
-        expires: new Date(expiresAt * 1000),
-        //secure: true,
-        //sameSite: "strict",
+      //const token = createToken(savedUser);
+      // const decodedToken = jwtDecode<decodedTokenInterface>(token);
+      //const expiresAt = decodedToken.exp;
+      // const { name, email, role, id } = savedUser;
+      //const userInfo = {
+      //  sub: id,
+      //  name,
+      // email,
+      //  role,
+      // };
+      // ctx.cookies.set("token", token, {
+      //  httpOnly: true,
+      //  expires: new Date(expiresAt * 1000),
+      //secure: true,
+      //sameSite: "strict",
+      //  });
+
+      ctx.mailer({
+        to: savedUser.email,
+        subject: 'GSweb - подтверждение email',
+        html: `<a href="http://localhost:3000/signup/confirm?token=${randomString}"></a>`,
+      }, (error: Error, info: any) => {
+        if (error) {
+          console.log(error);
+        }
+        console.log('Message sent: %s', info);
       });
 
       ctx.body = {
-        message: "Регистрация успешно завершена!",
-        userInfo,
-        expiresAt,
+        message: `Регистрация успешно завершена! На почту ${savedUser.email} отправлена ссылка для активации аккаунта.`,
+        //userInfo,
+        //expiresAt,
       };
     } else {
       ctx.throw(
@@ -97,25 +112,28 @@ export const signup = async (ctx: Koa.Context): Promise<void> => {
 export const login = async (ctx: Koa.Context): Promise<void> => {
   try {
     const { email, password } = ctx.request.body;
-    
+
     if (!validateEmail(email) || password.length < 8) {
       ctx.throw(HttpStatus.FORBIDDEN, "Wrong email or password.");
     }
-    
+
     const userRepo: Repository<User> = getRepository(User);
     const user = await userRepo.findOne({ email: email });
     if (!user) {
       ctx.throw(HttpStatus.FORBIDDEN, "Wrong email or password");
     }
-    
+
     if (user.status === UserStatus.DELETED) {
       ctx.throw(HttpStatus.FORBIDDEN, "User blocked");
     }
+    if (user.status !== UserStatus.ACTIVE) {
+      ctx.throw(HttpStatus.FORBIDDEN, "Ваш аккаунт не подтвержден.");
+    }
 
     const passwordValid = await verifyPassword(password, user.password);
-   
+
     if (passwordValid) {
-      
+
       const token = createToken(user);
       const decodedToken = jwtDecode<decodedTokenInterface>(token);
       const expiresAt = decodedToken.exp;
@@ -150,6 +168,34 @@ export const login = async (ctx: Koa.Context): Promise<void> => {
     ctx.throw(HttpStatus.BAD_REQUEST, err.message);
   }
 };
+
+export const emailConfirm = async (ctx: Koa.Context): Promise<void> => {
+  const { token } = ctx.request.query;
+
+  if (token && token.length !== 32) {
+    ctx.throw(HttpStatus.FORBIDDEN, "Wrong email confirm token.");
+  }
+
+  const userRepo: Repository<User> = getRepository(User);
+  const user = await userRepo.findOne({ hash: token });
+
+  if (!user) {
+    ctx.throw(HttpStatus.FORBIDDEN, "There was a problem to confirm email.");
+  }
+
+  if (user.status === UserStatus.ACTIVE || user.status === UserStatus.DELETED) {
+    ctx.throw(HttpStatus.FORBIDDEN, "Email already confirmed");
+  }
+
+  await userRepo.update(
+    { id: user.id },
+    { status: UserStatus.ACTIVE, hash: undefined },
+  );
+
+  ctx.body = {
+    message: "Email успешно подтвержден! Теперь Вы можете войти на сайт.",
+  };
+}
 
 export const getUsers = async (ctx: Koa.Context): Promise<void> => {
   if (ctx.user.role !== UserRole.ADMIN) {

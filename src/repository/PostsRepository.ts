@@ -17,7 +17,7 @@ export async function filterPostsWithPagination(page: number = 0, perPage: numbe
         query.andWhere("p.status = :status", { status })
     }
 
-    console.log(query.getSql());
+    //console.log(query.getSql());
 
     return await query.getManyAndCount();
 }

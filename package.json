@@ -18,6 +18,7 @@
     "@koa/router": "^9.3.1",
     "@types/dotenv": "^8.2.0",
     "bcryptjs": "^2.4.3",
+    "crypto-random-string": "^3.3.0",
     "csurf": "^1.11.0",
     "dotenv": "^8.2.0",
     "http-status-codes": "^1.4.0",
@@ -48,6 +49,7 @@
     "@types/koa-helmet": "^5.2.0",
     "@types/koa__cors": "^3.0.1",
     "@types/koa__router": "^8.0.2",
+    "@types/nodemailer": "^6.4.0",
     "@types/yup": "^0.29.4",
     "nodemon": "^2.0.4"
   }

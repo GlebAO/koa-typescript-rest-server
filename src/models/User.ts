@@ -40,6 +40,8 @@ export default class User {
   @Column({
     type: "varchar",
     length: 150,
+    default: null,
+    unique: true,
   })
   hash!: string;
 

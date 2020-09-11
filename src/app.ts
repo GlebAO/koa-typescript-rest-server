@@ -6,12 +6,14 @@ import cors from "@koa/cors";
 import jwt from "koa-jwt";
 import HttpStatus from 'http-status-codes';
 import jwtDecode from "jwt-decode";
-
+import nodemailer from 'nodemailer';
 
 import postRoutes from "./routes/posts";
 import userRoutes from "./routes/users";
 import postProtectedRoutes from "./routes/postsProtected";
 import userProtectedRoutes from "./routes/usersProtected";
+
+import Mail from "nodemailer/lib/mailer";
 
 dotenv.config();
 
@@ -32,6 +34,26 @@ app.use(async (ctx: Koa.Context, next: () => Promise<any>) => {
         ctx.app.emit('error', error, ctx);
     }
 });
+
+
+app.use(async (ctx: Koa.Context, next: () => Promise<any>) => {
+
+    let transporter = nodemailer.createTransport({
+        service: 'Yandex',
+        auth: {
+            user: process.env.YANDEX_LOGIN,
+            pass: process.env.YANDEX_PASSWORD
+        }
+    })
+
+    const defaultOptions: Mail.Options = {
+        from: process.env.YANDEX_LOGIN!
+    }
+
+    ctx.mailer = (data: Mail.Options, callback: (error: Error | null, info: any) => void) => transporter.sendMail({ ...defaultOptions, ...data }, (error, info) => callback(error, info));
+    //ctx.mailer = transporter.sendMail(data, (error, info) => callback(error, info));
+    await next()
+})
 
 app.use(postRoutes.routes()).use(postRoutes.allowedMethods());
 app.use(userRoutes.routes()).use(userRoutes.allowedMethods());
