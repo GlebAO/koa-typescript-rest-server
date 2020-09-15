@@ -53,8 +53,6 @@ export const getActivePostBySlug = async (ctx: Koa.Context): Promise<void> => {
     const postRepo: Repository<Post> = getRepository(Post);
     const post = await postRepo.findOne({ slug: ctx.params.slug }); //, status: PostStatus.ACTIVE
 
-
-
     if (!post) {
         ctx.throw(HttpStatus.NOT_FOUND);
     }

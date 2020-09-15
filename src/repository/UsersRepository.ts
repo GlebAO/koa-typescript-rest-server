@@ -12,5 +12,4 @@ export class UsersRepository extends AbstractRepository<User> {
             //cache: true
         })
     }
-
 }
