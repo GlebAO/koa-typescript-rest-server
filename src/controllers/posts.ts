@@ -1,15 +1,17 @@
 import Koa from 'koa';
 import { getRepository, Repository } from 'typeorm';
-import { Post, User, UserRole } from "../models";
+import { Post, Tag, User, UserRole } from "../models";
 import HttpStatus from 'http-status-codes';
 import * as yup from "yup";
 import { PostStatus } from "../models/Post";
 import { filterPostsWithPagination } from "../repository/PostsRepository";
+import { transliterate as slugify } from 'transliteration';
 
 export const postSchema = yup.object().shape({
     title: yup.string().required().min(2).max(150),
     slug: yup.string().required().min(2).max(150).matches(/^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/),
-    content: yup.string().required().min(50)
+    content: yup.string().required().min(50),
+    tags: yup.array().of(yup.string())
 });
 
 export const postListParamsSchema = yup.object().shape({
@@ -49,7 +51,9 @@ export const getPostById = async (ctx: Koa.Context): Promise<void> => {
 
 export const getActivePostBySlug = async (ctx: Koa.Context): Promise<void> => {
     const postRepo: Repository<Post> = getRepository(Post);
-    const post = await postRepo.findOne({ slug: ctx.params.slug, status: PostStatus.ACTIVE });
+    const post = await postRepo.findOne({ slug: ctx.params.slug }); //, status: PostStatus.ACTIVE
+
+
 
     if (!post) {
         ctx.throw(HttpStatus.NOT_FOUND);
@@ -60,9 +64,22 @@ export const getActivePostBySlug = async (ctx: Koa.Context): Promise<void> => {
     };
 }
 
+interface PostDataInterface {
+    title: string,
+    content: string,
+    slug: string,
+    tags?: Tag[]
+}
+
 export const createPost = async (ctx: Koa.Context): Promise<void> => {
     const postRepo: Repository<Post> = getRepository(Post);
-    const { title, content, slug } = ctx.request.body;
+    const { title, content, slug, tags } = ctx.request.body;
+
+    let postData: PostDataInterface = {
+        title,
+        content,
+        slug: slug.toLowerCase(),
+    }
 
     const userId = parseInt(ctx.user.sub);
     const userRepo: Repository<User> = getRepository(User);
@@ -74,24 +91,48 @@ export const createPost = async (ctx: Koa.Context): Promise<void> => {
         ctx.throw(HttpStatus.FORBIDDEN, "У Вас нет прав для создания записей. Обратитесь к администратору.");
     }
 
-    const postByTitle = await postRepo.findOne({ title: title });
+    const postByTitle = await postRepo.findOne({ title: postData.title });
     if (postByTitle) {
         ctx.throw(HttpStatus.BAD_REQUEST, "Такое название поста уже занято");
     }
 
-    const postBySlug = await postRepo.findOne({ slug: slug });
+    const postBySlug = await postRepo.findOne({ slug: postData.slug });
     if (postBySlug) {
         ctx.throw(HttpStatus.BAD_REQUEST, "Такая ссылка для поста уже занята");
     }
 
-    const newPost: Post = postRepo.create({ title, slug, content });
+    const newPost: Post = postRepo.create(postData);
     newPost.userId = <any>userId;
+
+    if (tags.length > 0) {
+        const tagModels = [];
+        for (let tag of tags) {
+            tagModels.push(await checkTag(tag))
+        }
+        newPost.tags = tagModels;
+    }
+
+    newPost.status = user.role === UserRole.ADMIN ? PostStatus.ACTIVE : PostStatus.DRAFT
 
     const savedPost = await postRepo.save(newPost);
 
     ctx.body = {
         savedPost
     };
+}
+
+const checkTag = async (tag: string) => {
+    const tagRepo: Repository<Tag> = getRepository(Tag);
+    const existingTag = await tagRepo.findOne({ title: tag });
+    if (existingTag !== undefined) {
+        existingTag.score = existingTag.score + 1
+        return existingTag;
+    } else {
+        const tagModel = new Tag();
+        tagModel.title = tag;
+        tagModel.slug = slugify(tag)
+        return tagModel;
+    }
 }
 
 export const deletePost = async (ctx: Koa.Context): Promise<void> => {
@@ -103,7 +144,6 @@ export const deletePost = async (ctx: Koa.Context): Promise<void> => {
     await postRepo.delete(post.id);
     ctx.status = HttpStatus.NO_CONTENT;
 }
-
 
 export const managePost = async (ctx: Koa.Context): Promise<void> => {
     const postId = parseInt(ctx.params.postId);
@@ -143,7 +183,13 @@ export const managePost = async (ctx: Koa.Context): Promise<void> => {
 export const updatePost = async (ctx: Koa.Context): Promise<void> => {
     const postId = parseInt(ctx.params.post_id);
     const userId = parseInt(ctx.user.sub);
-    const { title, slug } = ctx.request.body;
+    const { title, slug, content, tags } = ctx.request.body;
+
+    const postData = {
+        title,
+        content,
+        slug: slug.toLowerCase()
+    }
 
     const postRepo: Repository<Post> = getRepository(Post);
     const post = await postRepo.findOne(postId);
@@ -160,25 +206,39 @@ export const updatePost = async (ctx: Koa.Context): Promise<void> => {
         ctx.throw(HttpStatus.FORBIDDEN, "У Вас нет прав для редактирования этого поста");
     }
 
-    if (post.title !== title) {
-        const postByTitle = await postRepo.findOne({ title: title });
+    if (post.title !== postData.title) {
+        const postByTitle = await postRepo.findOne({ title: postData.title });
         if (postByTitle) {
             ctx.throw(HttpStatus.BAD_REQUEST, "Такое название поста уже занято");
         }
     }
 
-    if (post.slug !== slug) {
-        const postBySlug = await postRepo.findOne({ slug: slug });
+    if (post.slug !== postData.slug) {
+        const postBySlug = await postRepo.findOne({ slug: postData.slug });
         if (postBySlug) {
             ctx.throw(HttpStatus.BAD_REQUEST, "Такая ссылка для поста уже занята");
         }
     }
 
-    await postRepo.update(
-        { id: postId },
-        { ...ctx.request.body, status: PostStatus.DRAFT },
-    );
-    const updatedPost = await postRepo.findOne(postId);
+    if (tags.length === 0) {
+        post.tags = []
+    } else {
+        let newTags = [];
+        for (let tag of tags) {
+            const existingTag = post.tags.find(postTag => postTag.title === tag);
+            if (existingTag) {
+                newTags.push(existingTag)
+            } else {
+                newTags.push(await checkTag(tag));
+            }
+        }
+        post.tags = newTags;
+    }
+
+    post.status = user.role === UserRole.ADMIN ? PostStatus.ACTIVE : PostStatus.DRAFT
+
+    const updatedPost = await postRepo.save({...post, ...postData});
+
     ctx.body = {
         post: updatedPost
     };

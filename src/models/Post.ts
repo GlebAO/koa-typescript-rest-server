@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, Timestamp, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, Timestamp, JoinColumn, JoinTable, ManyToMany } from "typeorm";
 import User from "./User";
+import Tag from "./Tag";
 
 export enum PostStatus {
   ACTIVE = 10,
@@ -48,4 +49,13 @@ export default class Post {
     default: PostStatus.DRAFT,
   })
   status!: PostStatus;
+
+  @ManyToMany(() => Tag, tags => tags.posts, {
+    cascade: true,
+    eager: true
+  })
+  @JoinTable()
+  tags!: Tag[];
+
+
 }
