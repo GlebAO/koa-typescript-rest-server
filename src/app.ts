@@ -87,7 +87,7 @@ app.use(async (ctx: Koa.Context, next: () => Promise<any>) => {
     const decodedToken = jwtDecode(token);
 
     if (!decodedToken) {
-        ctx.throw(HttpStatus.UNAUTHORIZED, "There was a proble authorizing the request");
+        ctx.throw(HttpStatus.UNAUTHORIZED, "There was a problem authorizing the request");
     } else {
         ctx.user = decodedToken;
         await next();

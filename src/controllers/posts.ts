@@ -4,7 +4,7 @@ import { Post, Tag, User, UserRole } from "../models";
 import HttpStatus from 'http-status-codes';
 import * as yup from "yup";
 import { PostStatus } from "../models/Post";
-import { filterPostsWithPagination } from "../repository/PostsRepository";
+import { filterPostsWithPagination, findOneBySlug, findOneById } from "../repository/PostsRepository";
 import { transliterate as slugify } from 'transliteration';
 
 export const postSchema = yup.object().shape({
@@ -20,8 +20,8 @@ export const postListParamsSchema = yup.object().shape({
 })
 
 export const getActivePosts = async (ctx: Koa.Context): Promise<void> => {
-    const { page, perPage } = ctx.request.query;
-    const posts = await filterPostsWithPagination(page, perPage, PostStatus.ACTIVE)
+    const { page, perPage, tag } = ctx.request.query;
+    const posts = await filterPostsWithPagination(page, perPage, PostStatus.ACTIVE, tag)
     ctx.body = {
         posts
     };
@@ -55,6 +55,30 @@ export const getActivePostBySlug = async (ctx: Koa.Context): Promise<void> => {
 
     if (!post) {
         ctx.throw(HttpStatus.NOT_FOUND);
+    }
+
+    if (post.status === PostStatus.DRAFT) {
+        ctx.throw(HttpStatus.FORBIDDEN, "Пост находится на модерации.");
+    }
+
+    ctx.body = {
+        post
+    };
+}
+
+//allow users to view own posts when they on moderation
+export const getOwnPostBySlug = async (ctx: Koa.Context): Promise<void> => {
+    const userId = parseInt(ctx.user.sub);
+
+    //const postRepo: Repository<Post> = getRepository(Post);
+    const post = await findOneBySlug(ctx.params.slug); //, status: PostStatus.ACTIVE
+
+    if (!post) {
+        ctx.throw(HttpStatus.NOT_FOUND);
+    }
+
+    if (post.status === PostStatus.DRAFT && post.userId !== userId) {
+        ctx.throw(HttpStatus.FORBIDDEN, "Пост находится на модерации.");
     }
 
     ctx.body = {
@@ -103,8 +127,9 @@ export const createPost = async (ctx: Koa.Context): Promise<void> => {
     newPost.userId = <any>userId;
 
     if (tags.length > 0) {
+        const uniqueTags = tags.filter((value: string, index: number, self: string[]) => self.indexOf(value) === index);
         const tagModels = [];
-        for (let tag of tags) {
+        for (let tag of uniqueTags) {
             tagModels.push(await checkTag(tag))
         }
         newPost.tags = tagModels;
@@ -113,9 +138,10 @@ export const createPost = async (ctx: Koa.Context): Promise<void> => {
     newPost.status = user.role === UserRole.ADMIN ? PostStatus.ACTIVE : PostStatus.DRAFT
 
     const savedPost = await postRepo.save(newPost);
+    const post = await findOneById(savedPost.id);
 
     ctx.body = {
-        savedPost
+        post: post
     };
 }
 
@@ -181,6 +207,7 @@ export const managePost = async (ctx: Koa.Context): Promise<void> => {
 export const updatePost = async (ctx: Koa.Context): Promise<void> => {
     const postId = parseInt(ctx.params.post_id);
     const userId = parseInt(ctx.user.sub);
+
     const { title, slug, content, tags } = ctx.request.body;
 
     const postData = {
@@ -190,7 +217,8 @@ export const updatePost = async (ctx: Koa.Context): Promise<void> => {
     }
 
     const postRepo: Repository<Post> = getRepository(Post);
-    const post = await postRepo.findOne(postId);
+    const post = await findOneById(postId);
+
     if (!post) {
         ctx.throw(HttpStatus.NOT_FOUND);
     }
@@ -222,7 +250,8 @@ export const updatePost = async (ctx: Koa.Context): Promise<void> => {
         post.tags = []
     } else {
         let newTags = [];
-        for (let tag of tags) {
+        const uniqueTags = tags.filter((value: string, index: number, self: string[]) => self.indexOf(value) === index);
+        for (let tag of uniqueTags) {
             const existingTag = post.tags.find(postTag => postTag.title === tag);
             if (existingTag) {
                 newTags.push(existingTag)
@@ -235,10 +264,12 @@ export const updatePost = async (ctx: Koa.Context): Promise<void> => {
 
     post.status = user.role === UserRole.ADMIN ? PostStatus.ACTIVE : PostStatus.DRAFT
 
-    const updatedPost = await postRepo.save({...post, ...postData});
+    const updatedPost = await postRepo.save({ ...post, ...postData});
+    //const postWithChanges = await findOneById(updatedPost.id); 
+    //console.log(updatedPost)
 
     ctx.body = {
-        post: updatedPost
+        post: {...updatedPost, userId}
     };
 
 }
