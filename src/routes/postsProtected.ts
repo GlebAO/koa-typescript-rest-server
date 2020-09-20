@@ -1,5 +1,5 @@
 import Router from "@koa/router";
-import {  createPost, deletePost, updatePost, postSchema, getAllPosts, managePost, getOwnPostBySlug } from "../controllers/posts";
+import {  createPost, deletePost, updatePost, postSchema, getAllPosts, managePost, getOwnPostBySlug, getAuthorPosts } from "../controllers/posts";
 import { DefaultState, Context } from 'koa';
 import validator from "koa-yup-validator";
 
@@ -8,6 +8,8 @@ const routerOpts: Router.RouterOptions = {
 };
 
 const router = new Router<DefaultState, Context>(routerOpts);
+
+router.get('/my-posts', getAuthorPosts);
 
 router.get('/posts/own/:slug', getOwnPostBySlug);
 

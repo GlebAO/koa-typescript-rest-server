@@ -27,7 +27,7 @@ export async function findOneBySlug(slug: string) {
         .getOne();
 }
 
-export async function filterPostsWithPagination(page: number = 0, perPage: number = 10, status?: PostStatus, tag?: string): Promise<[Post[], number]> {
+export async function filterPostsWithPagination(page: number = 0, perPage: number = 10, status?: PostStatus, tag?: string, userId?: number): Promise<[Post[], number]> {
 
     const query = getConnection()
         .createQueryBuilder()
@@ -48,6 +48,10 @@ export async function filterPostsWithPagination(page: number = 0, perPage: numbe
 
     if( tag ) {
         query.andWhere("t.slug = :tag", { tag })
+    }
+
+    if(userId) {
+        query.andWhere("p.userId = :userId", { userId })
     }
 
     //console.log(query.getSql());

@@ -4,7 +4,8 @@ import Tag from "./Tag";
 
 export enum PostStatus {
   ACTIVE = 10,
-  DRAFT = 9,
+  PENDING = 9,
+  DRAFT = 8,
   ARCHIVED = 0,
 }
 
