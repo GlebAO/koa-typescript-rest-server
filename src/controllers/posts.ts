@@ -11,7 +11,8 @@ export const postSchema = yup.object().shape({
     title: yup.string().required().min(2).max(150),
     slug: yup.string().required().min(2).max(150).matches(/^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/),
     content: yup.string().required().min(50),
-    tags: yup.array().of(yup.string())
+    tags: yup.array().of(yup.string()),
+    status: yup.number().oneOf([PostStatus.PENDING, PostStatus.DRAFT])
 });
 
 export const postListParamsSchema = yup.object().shape({
@@ -87,7 +88,7 @@ export const getOwnPostBySlug = async (ctx: Koa.Context): Promise<void> => {
         ctx.throw(HttpStatus.NOT_FOUND);
     }
 
-    if ( (post.status === PostStatus.PENDING || post.status === PostStatus.DRAFT) && post.userId !== userId) {
+    if ((post.status === PostStatus.PENDING || post.status === PostStatus.DRAFT) && post.userId !== userId) {
         ctx.throw(HttpStatus.FORBIDDEN, "Пост находится на модерации.");
     }
 
@@ -105,7 +106,7 @@ interface PostDataInterface {
 
 export const createPost = async (ctx: Koa.Context): Promise<void> => {
     const postRepo: Repository<Post> = getRepository(Post);
-    const { title, content, slug, tags } = ctx.request.body;
+    const { title, content, slug, tags, status } = ctx.request.body;
 
     let postData: PostDataInterface = {
         title,
@@ -145,7 +146,7 @@ export const createPost = async (ctx: Koa.Context): Promise<void> => {
         newPost.tags = tagModels;
     }
 
-    newPost.status = PostStatus.PENDING
+    newPost.status = status ? status : PostStatus.PENDING
 
     const savedPost = await postRepo.save(newPost);
     const post = await findOneById(savedPost.id);
@@ -183,17 +184,13 @@ export const managePost = async (ctx: Koa.Context): Promise<void> => {
     const postId = parseInt(ctx.params.postId);
     const { status } = ctx.request.body
 
-    if (ctx.user.role !== UserRole.ADMIN) {
-        ctx.throw(HttpStatus.FORBIDDEN, "У Вас нет прав");
-    }
-
     const postRepo: Repository<Post> = getRepository(Post);
     const post = await postRepo.findOne(postId);
     if (!post) {
         ctx.throw(HttpStatus.NOT_FOUND);
     }
 
-    const statuses = [PostStatus.ACTIVE, PostStatus.PENDING ,PostStatus.DRAFT, PostStatus.ARCHIVED];
+    const statuses = [PostStatus.ACTIVE, PostStatus.PENDING, PostStatus.DRAFT, PostStatus.ARCHIVED];
 
     if (status === undefined) {
         ctx.throw(HttpStatus.BAD_REQUEST, "Нет обязательных параметров");
@@ -203,12 +200,16 @@ export const managePost = async (ctx: Koa.Context): Promise<void> => {
         ctx.throw(HttpStatus.BAD_REQUEST, "Такого статусу не существует");
     }
 
+    if (status === PostStatus.ACTIVE && ctx.user.role !== UserRole.ADMIN) {
+        ctx.throw(HttpStatus.FORBIDDEN, "У Вас нет прав для активации постов");
+    }
+
     await postRepo.update(
         { id: postId },
         { status },
     );
 
-    const updatedPost = await postRepo.findOne(postId);
+    const updatedPost = await findOneById(postId);
     ctx.body = {
         post: updatedPost
     };
@@ -218,7 +219,7 @@ export const updatePost = async (ctx: Koa.Context): Promise<void> => {
     const postId = parseInt(ctx.params.post_id);
     const userId = parseInt(ctx.user.sub);
 
-    const { title, slug, content, tags } = ctx.request.body;
+    const { title, slug, content, tags, status } = ctx.request.body;
 
     const postData = {
         title,
@@ -272,12 +273,12 @@ export const updatePost = async (ctx: Koa.Context): Promise<void> => {
         post.tags = newTags;
     }
 
-    post.status = PostStatus.PENDING
+    post.status = status ? status : PostStatus.PENDING
 
-    const updatedPost = await postRepo.save({ ...post, ...postData});
+    const updatedPost = await postRepo.save({ ...post, ...postData });
 
     ctx.body = {
-        post: {...updatedPost, userId}
+        post: { ...updatedPost, userId }
     };
 
 }
