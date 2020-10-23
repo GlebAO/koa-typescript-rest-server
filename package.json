@@ -33,6 +33,7 @@
     "koa-helmet": "^5.2.0",
     "koa-jwt": "^4.0.0",
     "koa-yup-validator": "^1.0.7",
+    "mysql": "^2.18.1",
     "nodemailer": "^6.4.11",
     "pg": "^8.3.0",
     "transliteration": "^2.1.11",
