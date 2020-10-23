@@ -11,8 +11,10 @@ import nodemailer from 'nodemailer';
 import postRoutes from "./routes/posts";
 import userRoutes from "./routes/users";
 import tagRoutes from "./routes/tags";
+import commentsRoutes from "./routes/comments";
 import postProtectedRoutes from "./routes/postsProtected";
 import userProtectedRoutes from "./routes/usersProtected";
+import commentProtectedRoutes from "./routes/commentsProtected";
 
 import Mail from "nodemailer/lib/mailer";
 
@@ -70,7 +72,9 @@ app.use(async (ctx: Koa.Context, next: () => Promise<any>) => {
 
 app.use(postRoutes.routes()).use(postRoutes.allowedMethods());
 app.use(userRoutes.routes()).use(userRoutes.allowedMethods());
+app.use(commentsRoutes.routes()).use(commentsRoutes.allowedMethods());
 app.use(tagRoutes.routes()).use(tagRoutes.allowedMethods());
+
 app.use(jwt({
     secret: process.env.JWT_SECRET!,
     issuer: "api.gsweb.ru",
@@ -95,7 +99,8 @@ app.use(async (ctx: Koa.Context, next: () => Promise<any>) => {
 });
 
 app.use(postProtectedRoutes.routes()).use(postProtectedRoutes.allowedMethods());
-app.use(userProtectedRoutes.routes()).use(userProtectedRoutes.allowedMethods());
+app.use(userProtectedRoutes.routes()).use(userProtectedRoutes.allowedMethods()); 
+app.use(commentProtectedRoutes.routes()).use(commentProtectedRoutes.allowedMethods());
 
 // Application error logging.
 app.on('error', console.error);
