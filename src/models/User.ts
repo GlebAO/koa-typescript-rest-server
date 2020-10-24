@@ -46,15 +46,14 @@ export default class User {
   hash!: string;
 
   @Column({
-    type: "varchar",
-    length: 10,
+    type: "enum",
     enum: UserRole,
     default: UserRole.GUEST,
   })
   role!: UserRole;
 
   @Column({
-    type: "int",
+    type: "enum",
     enum: UserStatus,
     default: UserStatus.INACTIVE,
   })

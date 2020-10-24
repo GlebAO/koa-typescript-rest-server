@@ -46,7 +46,7 @@ export default class Post {
   updatedAt!: Timestamp;
 
   @Column({
-    type: "int",
+    type: "enum",
     enum: PostStatus,
     default: PostStatus.DRAFT,
   })
