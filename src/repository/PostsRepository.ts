@@ -43,7 +43,7 @@ export async function filterPostsWithPagination(page: number = 0, perPage: numbe
         .orderBy("p.createdAt", "DESC");
 
     if (status) {
-        query.andWhere("p.status = :status", { status })
+        query.andWhere("p.status = :status", { status:status.toString() })
     }
 
     if( tag ) {

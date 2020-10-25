@@ -23,7 +23,11 @@ dotenv.config();
 const app: Koa = new Koa();
 
 app.use(helmet());
-app.use(cors());
+
+if(process.env.NODE_ENV === 'dev') {
+    app.use(cors());
+}
+
 app.use(bodyParser());
 
 // Generic error handling middleware.
@@ -103,6 +107,8 @@ app.use(userProtectedRoutes.routes()).use(userProtectedRoutes.allowedMethods());
 app.use(commentProtectedRoutes.routes()).use(commentProtectedRoutes.allowedMethods());
 
 // Application error logging.
-app.on('error', console.error);
+if(process.env.NODE_ENV === 'dev') {
+    app.on('error', console.error);
+}
 
 export default app;
