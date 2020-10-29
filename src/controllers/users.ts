@@ -144,8 +144,8 @@ export const login = async (ctx: Koa.Context): Promise<void> => {
       ctx.cookies.set("token", token, {
         httpOnly: true,
         expires: new Date(expiresAt * 1000),
-        //secure: true,
-        //sameSite: "strict",
+        secure: true,
+        sameSite: "strict",
       });
 
       await userRepo.update(
