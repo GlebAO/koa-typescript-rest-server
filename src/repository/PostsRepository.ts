@@ -58,3 +58,15 @@ export async function filterPostsWithPagination(page: number = 0, perPage: numbe
 
     return await query.getManyAndCount();
 }
+
+export async function getAllActivePosts() {
+    return await getConnection()
+        .createQueryBuilder()
+        .from(Post, "p")
+        .addSelect('p')
+        .orderBy("p.createdAt", "DESC")
+        .andWhere("p.status = :status", { status: String(PostStatus.ACTIVE) })
+        .getMany();
+}
+
+

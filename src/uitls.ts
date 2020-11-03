@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { Timestamp } from "typeorm";
 import { User, UserRole } from "./models";
 
 const hashPassword = (password: string) => {
@@ -83,4 +84,27 @@ const verifyPassword = (
   return bcrypt.compare(passwordAttempt, hashedPassword);
 };
 
-export { hashPassword, validateEmail, createToken, verifyPassword, tokenPayloadInterface };
+const formatDate = function (date: Date | Timestamp | string) {
+
+  const d = date instanceof Date ?
+        date : new Date(typeof date !== 'string' ? 
+            date.toString() : date);
+
+  const arr =  [
+    '0' + d.getHours(),
+    '0' + d.getMinutes(),
+    '0' + d.getDate(),
+    '0' + (d.getMonth() + 1),
+  ].map(component => component.slice(-2)); // взять последние 2 цифры из каждой компоненты
+
+  arr.push('' + d.getFullYear());
+
+  return arr;
+}
+
+const getFormattedDate = function (date: Timestamp | string | Date, dateDelim: string) {
+  const formatted = formatDate(date).slice(2).reverse();
+  return formatted.join(dateDelim);  // for time --> + ' ' + d.slice(0, 2).join(':')
+}
+
+export { hashPassword, validateEmail, createToken, verifyPassword, formatDate, getFormattedDate, tokenPayloadInterface };
