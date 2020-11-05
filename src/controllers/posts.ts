@@ -214,9 +214,15 @@ export const managePost = async (ctx: Koa.Context): Promise<void> => {
         ctx.throw(HttpStatus.FORBIDDEN, "У Вас нет прав для активации постов");
     }
 
+    let newStatus = status;
+    //own posts of admin from pending go to active
+    if(status === PostStatus.PENDING && post.userId === ctx.user.sub && ctx.user.role === UserRole.ADMIN) {
+        newStatus = PostStatus.ACTIVE;   
+    }
+
     await postRepo.update(
         { id: postId },
-        { status },
+        { status: newStatus },
     );
 
     const updatedPost = await findOneById(postId);
