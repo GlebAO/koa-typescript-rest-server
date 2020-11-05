@@ -17,6 +17,7 @@ export const create = async (ctx: Koa.Context): Promise<void> => {
     }]
 
     const posts = await getAllActivePosts();
+    console.log(posts);
     if( posts ) {
         let postUrls = posts.map(post => ({
             loc: `/post/${post.slug}`, lastMod:  getFormattedDate(post.updatedAt, '-'), changeFrequency: 'monthly', priority: 0.8

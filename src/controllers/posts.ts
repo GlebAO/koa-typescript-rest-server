@@ -148,12 +148,21 @@ export const createPost = async (ctx: Koa.Context): Promise<void> => {
 
     newPost.status = status ? status : PostStatus.PENDING
 
+    //skipCheckForAdmin
+    skipChekForAdmin(newPost, user);
+
     const savedPost = await postRepo.save(newPost);
     const post = await findOneById(savedPost.id);
 
     ctx.body = {
         post: post
     };
+}
+
+function skipChekForAdmin(post: Post, user: User) {
+    if(user.role === UserRole.ADMIN && post.status === PostStatus.PENDING) {
+        post.status = PostStatus.ACTIVE
+    }
 }
 
 const checkTag = async (tag: string) => {
@@ -186,6 +195,7 @@ export const managePost = async (ctx: Koa.Context): Promise<void> => {
 
     const postRepo: Repository<Post> = getRepository(Post);
     const post = await postRepo.findOne(postId);
+
     if (!post) {
         ctx.throw(HttpStatus.NOT_FOUND);
     }
@@ -197,7 +207,7 @@ export const managePost = async (ctx: Koa.Context): Promise<void> => {
     }
 
     if (status && !statuses.includes(status)) {
-        ctx.throw(HttpStatus.BAD_REQUEST, "Такого статусу не существует");
+        ctx.throw(HttpStatus.BAD_REQUEST, "Такого статуса не существует");
     }
 
     if (status === PostStatus.ACTIVE && ctx.user.role !== UserRole.ADMIN) {
@@ -273,7 +283,9 @@ export const updatePost = async (ctx: Koa.Context): Promise<void> => {
         post.tags = newTags;
     }
 
-    post.status = status ? status : PostStatus.PENDING
+    post.status = status ? status : PostStatus.PENDING;
+
+    skipChekForAdmin(post, user);
 
     const updatedPost = await postRepo.save({ ...post, ...postData });
 
