@@ -5,12 +5,7 @@
 ## Installation
 
 - Clone this repository and run commands below. You can use `tsc -w` command for compile TypeScript to JavaScript on a fly for dev purposes. 
-
-```shell
-$ npm install
-$ tsc
-$ npm start
-```
+n
 - Create PostgreSQL database.
 
 ```shell

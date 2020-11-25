@@ -1,6 +1,7 @@
 import Router from "@koa/router";
-import { getTags, getTagBySlug } from "../controllers/tags";
+import { tagSchema, updateTag } from "../controllers/tags";
 import { DefaultState, Context } from 'koa';
+import validator from "koa-yup-validator";
 
 const routerOpts: Router.RouterOptions = {
     prefix: '/api/tags',
@@ -8,9 +9,6 @@ const routerOpts: Router.RouterOptions = {
 
 const router = new Router<DefaultState, Context>(routerOpts);
 
-router.get('/', getTags);
-
-router.get('/:slug', getTagBySlug);
-
+router.patch('/:tag', validator(tagSchema), updateTag);
 
 export default router;

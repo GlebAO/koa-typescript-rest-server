@@ -15,6 +15,7 @@ import commentsRoutes from "./routes/comments";
 import postProtectedRoutes from "./routes/postsProtected";
 import userProtectedRoutes from "./routes/usersProtected";
 import commentProtectedRoutes from "./routes/commentsProtected";
+import tagProtectedRoutes from './routes/tagsProtected';
 import sitemapRoutes from "./routes/sitemap";
 
 import Mail from "nodemailer/lib/mailer";
@@ -106,6 +107,7 @@ app.use(async (ctx: Koa.Context, next: () => Promise<any>) => {
 app.use(postProtectedRoutes.routes()).use(postProtectedRoutes.allowedMethods());
 app.use(userProtectedRoutes.routes()).use(userProtectedRoutes.allowedMethods()); 
 app.use(commentProtectedRoutes.routes()).use(commentProtectedRoutes.allowedMethods());
+app.use(tagProtectedRoutes.routes()).use(tagProtectedRoutes.allowedMethods());
 app.use(sitemapRoutes.routes()).use(sitemapRoutes.allowedMethods());
 
 // Application error logging.
